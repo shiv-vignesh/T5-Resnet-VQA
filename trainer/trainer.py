@@ -309,7 +309,7 @@ class VQATrainer:
                 self.cur_epoch = epoch
                 self.logger.log_line()
 
-                self.train_one_epoch()
+                # self.train_one_epoch()
                 '''
                 #TODO, self.callbacks.save_state_dict_checkpoint(epoch, self.lr_scheduler, self.optimizer) 
                 #TODO, valid_one_epoch()
@@ -427,12 +427,14 @@ class VQATrainer:
             )
             ''' TODO, change this code with KLD loss'''
 
-            if self.loss_combination_strategy == "dynamic_weighted":
-                weight = torch.sigmoid(self.learnable_parameter).to(self.device)
-                total_loss = weight * answer_loss + (1-weight) * question_type_loss
+            # if self.loss_combination_strategy == "dynamic_weighted":
+            #     weight = torch.sigmoid(self.learnable_parameter).to(self.device)
+            #     total_loss = weight * answer_loss + (1-weight) * question_type_loss
             
-            elif self.loss_combination_strategy == "CE_KLD":
-                pass 
+            # elif self.loss_combination_strategy == "CE_KLD":
+            #     pass 
+
+            total_loss = answer_loss + question_type_loss
 
             total_loss.backward()
 
@@ -442,7 +444,7 @@ class VQATrainer:
             self.optimizer.step()        
         
         self.lr_scheduler.step()
-        return total_loss, answer_loss, question_type_loss, answer_logits, question_type_scores
+        return total_loss.item(), answer_loss.item(), question_type_loss.item(), answer_logits, question_type_scores
 
     def train_one_mxp_step(self, data_items):
         self.optimizer.zero_grad()        
@@ -489,8 +491,8 @@ class VQATrainer:
 
                 _, valid_answer_loss, _, valid_question_type_loss = self.valid_one_step(data_items)
                 total_valid_loss += (valid_answer_loss + valid_question_type_loss)
-                total_answer_loss += total_answer_loss
-                total_qt_loss += total_qt_loss 
+                total_answer_loss += valid_answer_loss
+                total_qt_loss += valid_question_type_loss 
 
                 ''' 
                 indices - [bs, topk, max_len]; log_prob - [bs, topk]
@@ -514,12 +516,12 @@ class VQATrainer:
 
                     for k in range(log_prob.shape[1]):
                         token_ids = indices[batch_idx, k, :]
-                        decoded_str = self.test_dataloader.collate_fn.batch_decode(
+                        decoded_str = self.test_dataloader.collate_fn.tokenizer.batch_decode(
                         token_ids
                         )
 
                         batch_idx_predictions.append(decoded_str)
-                        batch_idx_prediction_log_prob_scores.append(log_prob[batch_idx][k])
+                        batch_idx_prediction_log_prob_scores.append(log_prob[batch_idx][k].item())
 
                     batch_topk_predictions.extend(batch_idx_predictions)
                     batch_topk_prediction_log_prob.extend(batch_idx_prediction_log_prob_scores)
@@ -527,8 +529,8 @@ class VQATrainer:
                 for idx, question in enumerate(batch_questions):
                     answer = batch_answers[idx]
 
-                    epoch_predictions[f'{epoch}_{idx}']["question"] = question
-                    epoch_predictions[f'{epoch}_{idx}']["answer"] = answer 
+                    epoch_predictions[f'{epoch}_{idx}']["question"] = question.question_text
+                    epoch_predictions[f'{epoch}_{idx}']["answer"] = answer
                     epoch_predictions[f'{epoch}_{idx}']['topk_predictions'] = batch_topk_predictions
                     epoch_predictions[f'{epoch}_{idx}']['topk_predictions_scores'] = batch_topk_prediction_log_prob
 
@@ -554,11 +556,21 @@ class VQATrainer:
         return avg_valid_loss, avg_qt_loss, avg_answer_loss, epoch_predictions
    
     def valid_one_step(self, data_items):
+        
+        answers = data_items["answers"]
+        questions = data_items["questions"]
+
+        del data_items["answers"]
+        del data_items["questions"]
+        
         answer_logits, question_type_scores, answer_loss, question_type_loss = self.model(
             **data_items
         )          
 
-        return answer_logits, answer_loss, question_type_scores, question_type_loss
+        data_items["questions"] = questions 
+        data_items["answers"] = answers
+
+        return answer_logits, answer_loss.item(), question_type_scores, question_type_loss.item()
 
     def optimizer_to_device(self):
         for param in self.optimizer.state.values():

@@ -116,7 +116,7 @@ class BatchCollateFn(object):
 
         self.tokenizer = AutoTokenizer.from_pretrained(lang_model)
         self.tokenizer.add_special_tokens({
-            "additional_special_tokens":[Enums.QUESTION_SPECIAL_TOKEN, Enums.CONTEXT_SPECIAL_TOKEN]
+            "additional_special_tokens":[Enums.QUESTION_SPECIAL_TOKEN, Enums.CONTEXT_SPECIAL_TOKEN, Enums.QUESTION_TYPE_SPECIAL_TOKEN]
         })
 
         self.eval_mode = eval_mode
@@ -153,12 +153,16 @@ class BatchCollateFn(object):
             image_tensors.append(image_tensor)
 
         image_tensors = torch.stack(image_tensors, dim=0)
-        question_texts = [f'{Enums.QUESTION_SPECIAL_TOKEN} {question.question_text}' for question in questions]
-
-        question_tensors = self.tokenizer(question_texts, return_tensors="pt", padding="longest") 
+        ''' 
+        Uncomment for just question as input to the T5-encoder.
+        '''
+        # question_texts = [f'{Enums.QUESTION_SPECIAL_TOKEN} {question.question_text}' for question in questions]
+        # question_tensors = self.tokenizer(question_texts, return_tensors="pt", padding="longest") 
                 
         annotations_ids = [] 
         question_type_ids = []
+
+        question_types = []
 
         for annotation in annotations:
             answers = annotation.answers
@@ -167,11 +171,15 @@ class BatchCollateFn(object):
             annotations_ids.append(answer_input_ids)
 
             question_type = annotation.question_type
+            question_types.append(question_type)
             question_type_id = Enums.QUESTION_TYPE_TO_IDS[question_type]
             question_type_ids.append(question_type_id)
 
         annotations_ids = torch.stack(annotations_ids, dim=0) #[bs, 10, 512]; 10 - 10 answers per question and 512 is the max generative len. Each of 0-512 is a token id. 
         question_type_ids = torch.tensor(question_type_ids)
+
+        question_texts = [f'{Enums.QUESTION_SPECIAL_TOKEN} {question.question_text} {Enums.QUESTION_TYPE_SPECIAL_TOKEN} {question_types[idx]}' for idx, question in enumerate(questions)]
+        question_tensors = self.tokenizer(question_texts, return_tensors="pt", padding="longest")         
 
         if self.eval_mode:
             answers = [annotation.answers for annotation in annotations]

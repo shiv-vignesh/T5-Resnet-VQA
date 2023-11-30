@@ -47,7 +47,7 @@ class VisionModel(nn.Module):
         image_features = image_tensor
         for layer_name, resnet_block in self.model._modules.items():
             if layer_name not in ["avgpool","fc"]:
-                image_features = resnet_block(image_features) 
+                image_features = resnet_block(image_features.float()) 
 
         if reduce_dim:
             bs, hidden_dim, _, _ = image_features.size() # size [bs, 2048, 7, 7] > resnet50; #size [bs, 512, 14] > resnet34 & resnet18
@@ -182,6 +182,9 @@ class VQAModel(nn.Module):
                 (question_input_ids, zero_padding), dim=1
             ) # [bs, Enums.Max_len, 768]
 
+        else:
+            reshaped_question_input_ids = question_input_ids[:,:Enums.MAX_LEN]
+
         decoder_input_ids = self.language_model.encoder._shift_right(reshaped_question_input_ids) # [bs, Enums.Max_len, 768]
 
         if not self.language_model.fine_tune_decoder:
@@ -221,12 +224,12 @@ class VQAModel(nn.Module):
         answer_loss, question_type_loss = None, None 
 
 
-        if self.training and question_type_ids!=None:
+        if self.training or question_type_ids!=None:
             question_type_loss = F.cross_entropy(
                 question_type_scores.view(-1, question_type_scores.size(-1)), question_type_ids.view(-1)
             )
 
-        if self.training and annotation_ids!=None:
+        if self.training or annotation_ids!=None:
             answer_loss = F.cross_entropy(
                 answer_logits.view(-1, answer_logits.size(-1)), annotation_ids.view(-1), ignore_index=-100
             )
@@ -290,6 +293,9 @@ class VQAModel(nn.Module):
                 (question_input_ids, zero_padding), dim=1
             ) # [bs, Enums.Max_len, 768]
 
+        else:
+            reshaped_question_input_ids = question_input_ids[:,:Enums.MAX_LEN]
+
         reshaped_decoder_input_ids = self.language_model.encoder._shift_right(reshaped_question_input_ids) # [bs, Enums.Max_len]
 
         ''' 
@@ -312,59 +318,7 @@ class VQAModel(nn.Module):
             decoder_embeddings
         )
 
-        return self.beam_search(answer_logits, 
+        return self.beam_search(answer_logits.cpu(), 
                                 pad_token_id,
                                 eos_token_id,
                                 top_k=top_k)
-
-        # next_token_logits = answer_logits[:, -1, :]
-        # next_token_scores = nn.functional.log_softmax(next_token_logits, dim=-1)
-        # vocab_size = next_token_scores.shape[-1]
-
-        # if isinstance(eos_token_id, int):
-        #     eos_token_id = [eos_token_id]        
-
-        # n_eos_tokens = len(eos_token_id)
-
-        # next_token_scores, next_tokens = torch.topk(
-        #     next_token_scores, max(2, 1 + n_eos_tokens) * num_beams, dim=1, largest=True, sorted=True
-        # )
-
-        # next_indices = torch.div(next_tokens, vocab_size, rounding_mode="floor")
-        # next_tokens = next_tokens % vocab_size
-
-        # print(decoder_embeddings.size())
-        # exit(1)
-
-        # decoder_outputs = self.language_model.forward_decoder(
-        #     combined_embeddings,
-        #     decoder_input_ids=decoder_input_ids
-        # ) # [bs, Enums.Max_len, 768]  
-
-        # decoder_embeddings = decoder_outputs.last_hidden_state
-        # decoder_attentions = decoder_outputs.attentions
-
-        # batch_size, longest_len, hidden_dim = decoder_embeddings.size()
-
-        # answer_logits = self.answer_classifier(
-        #     decoder_embeddings
-        # ) #[bs, 10, Enums.Max_len, 32128], last dim is the vocab size of T5
-
-        # logits_processor = LogitsProcessorList()
-        # stopping_criteria = StoppingCriteria()
-
-
-
-        
-
-        # repeated_decoder_ids = decoder_input_ids.view(-1, decoder_input_ids.shape[1]).repeat_interleave(num_beams, dim=0)
-
-        # model_kwargs = { 
-        #     "encoder_outputs":decoder_embeddings.repeat_interleave(num_beams, dim=0)
-        # }
-
-
-
-        # answer_logits = torch.softmax(answer_logits, dim=2)
-        # return self.beam_search(answer_logits)
-

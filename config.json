@@ -1,6 +1,6 @@
 {
     "model_kwargs":{
-        "device":"cpu",
+        "device":"cuda",
         "vision_model_name":"resnet50",
         "language_model_name":"t5-base"
 

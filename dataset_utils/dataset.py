@@ -50,9 +50,9 @@ class VQADataset(Dataset):
                 # image_ids_to_fn:dict
                 ):     
 
-        # self.image_ids_to_fn = image_ids_to_fn
         self.images_dir = images_dir
         self.type = type
+        self.image_ids_to_fn = {}
         self.load_data(annotations_json, questions_json, images_dir)
 
     def load_data(self, annotations_json:dict, questions_json:dict, images_dir:str):
@@ -68,7 +68,7 @@ class VQADataset(Dataset):
             elif self.type == "val":
                 image_id = image_fn.split('COCO_val2014_')[1].lstrip('0').split('.')[0]
 
-            Enums.IMAGE_ID_IMAGE_FN[int(image_id)] = image_fn
+            self.image_ids_to_fn[int(image_id)] = image_fn
 
     def __getitem__(self, idx):
 
@@ -87,7 +87,7 @@ class VQADataset(Dataset):
         )
 
         image_id = question.image_id
-        image_fn = Enums.IMAGE_ID_IMAGE_FN[image_id]
+        image_fn = self.image_ids_to_fn[image_id]
 
         return {
             "question": question,

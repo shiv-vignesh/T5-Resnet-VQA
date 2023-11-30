@@ -6,18 +6,18 @@
 
     },
     "dataset_kwargs": {
-        "root_data_dir":"/home/stu12/s12/sm2678/idai_610_term_project/data",
+        "root_data_dir":"dataset",
         "train_annotations_json_fn": "mscoco_train2014_annotations.json",
         "train_questions_json_fn": "OpenEnded_mscoco_train2014_questions.json",
-        "test_annotations_json_fn": "subset_annotations.json",
-        "test_questions_json_fn": "subset_questions.json",        
+        "test_annotations_json_fn": "mscoco_val2014_annotations.json",
+        "test_questions_json_fn": "OpenEnded_mscoco_val2014_questions.json",        
         "train_images_dir":"data/train_images",
         "test_images_dir":"data/val_images",
         "train_preprocessing_kwargs":{
             "resizing_width":256,
             "resizing_height":256,
             "interpolation_strategy":"bilinear_interpolation",
-            "batch_size":2,
+            "batch_size":4,
             "image_transforms":[
                 "ShiftScaleRotate", 
                 "RandomCrop",
@@ -58,7 +58,7 @@
         "first_val_epoch": 0,
         "metric_eval_mode": "strict",
         "metric_average_mode": "macro",
-        "mxp_training":true,
+        "mxp_training":false,
         "loss_combination_strategy":"dynamic_weighted"        
     },
 

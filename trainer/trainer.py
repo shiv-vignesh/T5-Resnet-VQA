@@ -422,7 +422,7 @@ class VQATrainer:
         self.optimizer.zero_grad()        
 
         with torch.set_grad_enabled(True):
-            answer_logits, answer_loss, question_type_scores, question_type_loss = self.model(
+            answer_logits, question_type_scores, answer_loss, question_type_loss = self.model(
                 **data_items
             )
             ''' TODO, change this code with KLD loss'''
@@ -554,7 +554,7 @@ class VQATrainer:
         return avg_valid_loss, avg_qt_loss, avg_answer_loss, epoch_predictions
    
     def valid_one_step(self, data_items):
-        answer_logits, answer_loss, question_type_scores, question_type_loss = self.model(
+        answer_logits, question_type_scores, answer_loss, question_type_loss = self.model(
             **data_items
         )          
 

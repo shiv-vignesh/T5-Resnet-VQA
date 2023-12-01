@@ -211,7 +211,7 @@ class VQAModel(nn.Module):
             reshaped_decoder_embedding
         ) #[bs, 10, Enums.Max_len, 32128], last dim is the vocab size of T5
 
-        answer_logits = torch.softmax(answer_logits, dim=2)
+        answer_logits = nn.functional.log_softmax(answer_logits, dim=2)
 
         question_type_embedding = torch.mean(
             decoder_embeddings, dim=1
@@ -230,19 +230,25 @@ class VQAModel(nn.Module):
             )
 
         if self.training or annotation_ids!=None:
-            answer_loss = F.cross_entropy(
+            # answer_loss = F.cross_entropy(
+            #     answer_logits.view(-1, answer_logits.size(-1)), annotation_ids.view(-1), ignore_index=-100
+            # )
+
+            answer_loss = F.nll_loss(
                 answer_logits.view(-1, answer_logits.size(-1)), annotation_ids.view(-1), ignore_index=-100
             )
         
         return answer_logits, question_type_scores, answer_loss, question_type_loss                
 
-    def beam_search(self, prediction:torch.tensor, pad_token_id:int, eos_token_id:int, top_k=3, min_prob_threshold=1e-5):
+    def beam_search(self, prediction:torch.tensor, pad_token_id:int, eos_token_id:int, top_k=3, min_prob_threshold=0.5):
         ''' 
         BeamSearchScore process() and finalize()
         '''
         batch_size, seq_length, vocab_size = prediction.shape
         log_prob, indices = prediction[:, 0, :].topk(top_k, sorted=True)
-        # log_prob = nn.functional.log_softmax(log_prob, dim=-1)
+        log_prob = nn.functional.log_softmax(log_prob, dim=-1)
+        log_prob = torch.exp(log_prob)
+
         indices = indices.unsqueeze(-1)
         for n1 in range(1, seq_length):
             log_prob_temp = log_prob.unsqueeze(-1) + prediction[:, n1, :].unsqueeze(1).repeat(1, top_k, 1)

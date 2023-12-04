@@ -45,6 +45,7 @@ class Enums:
     QUESTION_SPECIAL_TOKEN = "[Question]"
     CONTEXT_SPECIAL_TOKEN = "[CONTEXT]"
     QUESTION_TYPE_SPECIAL_TOKEN = "[QUESTION_TYPE]"
+    ANSWER_SPECIAL_TOKEN = "[Answer]"
 
     MAX_LEN = 30 # estimated through EDA.  Longest Annotation in Training is 26; Longest Annotation in Validation is 23
     ANSWERS_PER_QUESTION = 10

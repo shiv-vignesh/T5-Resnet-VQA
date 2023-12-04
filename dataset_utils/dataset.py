@@ -59,7 +59,7 @@ class VQADataset(Dataset):
         
         self.questions = questions_json["questions"]
         self.annotations = annotations_json["annotations"]
-        self.image_fns = self.images_fns = os.listdir(images_dir)
+        self.images_fns = os.listdir(images_dir)
 
         for image_fn in self.image_fns:
             if self.type == "train":

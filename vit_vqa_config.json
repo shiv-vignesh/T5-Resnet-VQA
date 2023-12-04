@@ -1,0 +1,68 @@
+{
+    "model_kwargs":{
+        "device":"cuda",
+        "vision_model_name":"google/vit-base-patch16-224-in21k",
+        "language_model_name":"t5-base"
+
+    },
+    "dataset_kwargs": {
+        "root_data_dir":"../data",
+        "train_data_json_fn": "reformatted_jsons_single_word/OK_VQA_train_dataset.json",
+        "test_data_json_fn": "reformatted_jsons_single_word/OK_VQA_val_dataset.json",
+        "answer_spaces_file":"reformatted_jsons_single_word/answer_spaces_singular.txt",
+        "train_images_dir":"train_images",
+        "test_images_dir":"val_images",
+        "image_preprocessor_model":"google/vit-base-patch16-224-in21k",
+        "language_model_tokenizer":"t5-base",
+        "train_batch_size":4,
+        "test_batch_size":16
+    },
+    "trainer_kwargs": {
+        "epochs": 30,
+        "monitor_train": true,
+        "monitor_val": true,
+        "monitor_test": true,
+        "device": "cuda",
+        "gradient_clipping": 1.0,
+        "output_dir": "Ans_NLLoss_only_no_image_augmentations",
+        "load_from_checkpoint": true,
+        "is_training": true,
+        "use_cache": false,
+        "first_val_epoch": 0,
+        "metric_eval_mode": "strict",
+        "metric_average_mode": "macro",
+        "mxp_training":false,
+        "loss_combination_strategy":"dynamic_weighted"        
+    },
+
+    "optimizer_kwargs": {
+        "_description": "default_lr is for any layer other than lm",
+        "default_lr": 0.00005,
+        "type": "AdamW",
+        "kwargs": {
+            "weight_decay": 0.1,
+            "amsgrad": true
+        },
+        "lm_encoder_lr": 0.005,
+        "lm_decoder_lr": 0.0001,
+        "vision_lr":0.008,
+        "classifier_lr":0.00001
+    },
+
+    "lr_scheduler_kwargs": {
+        "_description": "linear lr scheduler with warmup and linear decay",
+        "increase_batch_size_on_plateau": false,
+        "num_warmup_steps": -1,
+        "num_training_steps": -1,
+        "max_warmup_steps": 10000
+        }, 
+    "callbacks_kwargs": {
+        "_description": "early stopping",
+        "kwargs": {
+            "save_final_model": false,
+            "patience": 3,
+            "mode": "max",
+            "threshold": 0.005
+        }
+    }            
+}

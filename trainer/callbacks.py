@@ -14,7 +14,10 @@ class Callbacks:
                  save_final_model: bool=False):
         self.logger = logger
         self.save_final_model = save_final_model
-        self.output_dir = output_dir
+        self.output_dir = f'{output_dir}/model_checkpoints'
+
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
 
         self.best_score = 0.0
         self.mode = "max"
@@ -28,12 +31,18 @@ class Callbacks:
         elif self.mode == "min":
             return (self.best_score-score) > self.threshold
 
-    def save_checkpoint(self, model):
+    def save_checkpoint(self, model, epoch):
         '''
         save new best model
         '''
         self.logger.log_message(f"Saving new best-model with F-Score: {self.best_score:.4f}")
         torch.save(model.state_dict(), os.path.join(self.output_dir, "best-model.pt"))
+
+        with open(f'{self.output_dir}/model_ckpt_info.json','w+') as f:
+            json.dump({
+                "epoch":epoch, 
+                "best_score":self.best_score
+            }, f)
 
     def exit_training(self, model):
         '''

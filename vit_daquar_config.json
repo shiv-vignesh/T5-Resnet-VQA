@@ -2,28 +2,28 @@
     "model_kwargs":{
         "device":"cuda",
         "vision_model_name":"google/vit-base-patch16-224-in21k",
-        "language_model_name":"t5-base"
+        "language_model_name":"roberta-base"
 
     },
     "dataset_kwargs": {
         "root_data_dir":"../DAQUAR_dataset",
-        "train_csv_file": "train_modified.csv",
-        "test_csv_file": "test_modified.csv",
-        "answer_spaces_file":"answer_spaces.txt",
-        "images_dir":"images",
+        "train_csv_file": "train_modified_v2.csv",
+        "test_csv_file": "test_modified_v2.csv",
+        "answer_spaces_file":"answer_spaces_single_word_threshold_5_without_O.txt",
+        "images_dir":"images",        
         "image_preprocessor_model":"google/vit-base-patch16-224-in21k",
         "language_model_tokenizer":"t5-base",
         "train_batch_size":4,
         "test_batch_size":16
     },
     "trainer_kwargs": {
-        "epochs": 30,
+        "epochs": 40,
         "monitor_train": true,
         "monitor_val": true,
         "monitor_test": true,
         "device": "cuda",
         "gradient_clipping": 1.0,
-        "output_dir": "DAQUAR_dataset_Logs",
+        "output_dir": "DAQUAR_dataset_Logs_286_classes_(Vit-Roberta)_without_O-Label",
         "load_from_checkpoint": true,
         "is_training": true,
         "use_cache": false,

@@ -506,7 +506,13 @@ class CrossAttentionVQATrainer:
 
         avg_wups_score = sum(wups_scores)/len(wups_scores)
         avg_valid_loss = total_valid_loss/len(self.test_dataloader)
-        
+
+        if avg_wups_score > self.callbacks.best_score:
+            self.callbacks.best_score = avg_wups_score
+            self.callbacks.save_checkpoint(self.model, self.cur_epoch)
+            self.logger.log_message(f'Saving Model Checkpoint at {self.cur_epoch}')
+            self.logger.log_new_line()
+
         self.logger.log_line()
         self.logger.log_message(f'Epoch #{self.cur_epoch}: Average Validation Loss: {avg_valid_loss:.4f} - Average WUPS Score: {avg_wups_score:.4f}')
         self.logger.log_new_line()

@@ -2,10 +2,24 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F
 
-from .faster_rcnn_vqa_model import AttentionPooler
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 
 from transformers import T5ForConditionalGeneration, T5Config, ViTModel, RobertaModel
+
+class AttentionPooler(nn.Module):
+    def __init__(self, hidden_size):
+        super(AttentionPooler, self).__init__()
+        self.hidden_size = hidden_size
+        self.attention = nn.Sequential(
+            nn.Linear(hidden_size, 1),
+            nn.Softmax(dim=1)  # Apply softmax along the sequence dimension
+        )
+
+    def forward(self, x):
+        att_weights = self.attention(x).transpose(1, 2)  # Transpose for weighted sum
+        pooled_output = torch.bmm(att_weights, x).squeeze(1)  # Weighted sum
+        return pooled_output
+
 
 class CrossAttentionVitVQAModel(nn.Module):
 

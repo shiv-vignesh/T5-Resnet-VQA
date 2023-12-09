@@ -126,24 +126,30 @@ class DaquarVitT5CollateFn(object):
                 )['pixel_values']
                         
         annotations_ids = []  
-
         random_answer_choices = []
+
+        raw_answer_texts = []
 
         for annotation in annotations:
             ''' 
             randomly select a single choice from list of answers
             '''
             answer = random.choice(annotation.answers)
-            random_answer_choices.append(self.answer_spaces.index(answer))
-
-
+            if answer in self.answer_spaces:
+                random_answer_choices.append(self.answer_spaces.index(answer))
+            else:
+                random_answer_choices.append(self.answer_spaces.index('O'))
+            raw_answer_texts.append(answer)
+        
+        answer_tensors = self.tokenizer(raw_answer_texts, return_tensors="pt", padding="max_length", truncation=True, max_length=Enums.MAX_LEN)
+        
         annotations_ids = torch.tensor(random_answer_choices)
         question_texts = [f'{Enums.QUESTION_SPECIAL_TOKEN} {question.question_text}' for idx, question in enumerate(questions)]
 
         question_tensors = self.tokenizer(question_texts, return_tensors="pt", padding="longest")         
 
         decoder_question_texts = [f'{Enums.QUESTION_SPECIAL_TOKEN} {question.question_text} {Enums.ANSWER_SPECIAL_TOKEN}' for idx, question in enumerate(questions)]
-        decoder_question_tensors = self.tokenizer(decoder_question_texts, return_tensors="pt", padding="longest")         
+        decoder_question_tensors = self.tokenizer(decoder_question_texts, return_tensors="pt", padding="max_length", truncation=True, max_length=Enums.MAX_LEN)         
 
         if self.eval_mode:
             answers = [annotation.answers for annotation in annotations]
@@ -154,9 +160,12 @@ class DaquarVitT5CollateFn(object):
                 "decoder_question_attention_masks":decoder_question_tensors["attention_mask"],
                 "annotation_ids":annotations_ids, #list(tensors)
                 "pixel_values":pixel_values,
+                "image_tensors":None,
                 "question_type_ids":None,
                 "answers":answers,
-                "questions":questions
+                "questions":questions,
+                "answer_input_ids":answer_tensors["input_ids"],
+                "answer_attention_masks":answer_tensors["attention_mask"]
             }
 
 
@@ -167,7 +176,10 @@ class DaquarVitT5CollateFn(object):
             "decoder_question_attention_masks":decoder_question_tensors["attention_mask"],
             "annotation_ids":annotations_ids,
             "pixel_values":pixel_values,
+            "image_tensors":None,
             "question_type_ids":None,
+            "answer_input_ids":answer_tensors["input_ids"],
+            "answer_attention_masks":answer_tensors["attention_mask"]            
         }
 
     def __call__(self, data_points):
